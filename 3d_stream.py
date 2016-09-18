@@ -2,6 +2,8 @@ import httplib2
 import os
 import sys
 import datetime
+import subprocess
+from datetime import datetime
 
 from apiclient.discovery import build
 from apiclient.errors import HttpError
@@ -72,9 +74,11 @@ def insert_stream(service, title):
 
 	url_to_send = response["cdn"]["ingestionInfo"]["ingestionAddress"]
 
-	return response["id"]
+	return url_to_send, response["id"]
 
 def create_broadcast(service, args, title):
+
+	print args.start_time
 	response = service.liveBroadcasts().insert(
 
 		part = "snippet, status",
@@ -107,6 +111,24 @@ def bind_broadcast(service, broadcast_id, stream_id):
 		streamId=stream_id
 	).execute()
 
+def send_stream(url):
+
+    args = [
+        'ffmpeg',
+        '-i',
+        'video="test.mp4"',
+        '-vcodec',
+        'libx264',
+        '-tune',
+        'zerolatency',
+        '-b',
+        '900k',
+        '-f',
+        'flv',
+        url
+        ]
+
+    subprocess.call(args)
 
 if __name__ == "__main__":
 
@@ -115,7 +137,7 @@ if __name__ == "__main__":
   	argparser.add_argument("--privacy-status", help="Broadcast privacy status",
     	default="public")
   	argparser.add_argument("--start-time", help="Scheduled start time",
-    	default='2017-01-30T00:00:00.000Z')
+    	default='2016-09-18T12:00:00.0Z')
   	argparser.add_argument("--end-time", help="Scheduled end time",
     	default='2017-01-31T00:00:00.000Z')
   	argparser.add_argument("--stream-title", help="Stream title",
@@ -126,15 +148,18 @@ if __name__ == "__main__":
 
 	print "WORKS"
 
-	print datetime.datetime.now()
-
+	print type(datetime.now())
+	url = None
 	try:
 		broadcast_id = create_broadcast(service, args, "Stream")
 		print "WORKS"
-		stream_id = insert_stream(service, "Stream")
-		print "WORKS"
+		url, stream_id = insert_stream(service, "Stream")
+
 		bind_broadcast(service, broadcast_id, stream_id)
-		print "WORKS"
+		send_stream(url)
+
 	except HttpError, e:
 		print e.content
+
+	
 
