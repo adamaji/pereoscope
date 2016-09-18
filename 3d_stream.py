@@ -134,6 +134,8 @@ def send_stream(url):
         'zerolatency',
         '-b:v',
         '900k',
+        '-c',
+        'copy',
         '-f',
         'flv',
         url
