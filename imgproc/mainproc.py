@@ -89,12 +89,13 @@ def read_stream(url1, url2):
     # pipe2 = subprocess.Popen(command2, stdout = subprocess.PIPE, bufsize=10**8)
 
     raw_image = pipe1.stdout.read(640*480*3)
-    print(raw_image)
+    #print(raw_image)
     # transform the byte read into a numpy array
     image =  np.fromstring(raw_image, dtype='uint8')
+    image = np.reshape(image, (640,480,3))
     # throw away the data in the pipe's buffer.
     pipe1.stdout.flush()
-    return raw_image
+    return image
 
 ###----------------------------------####
 
@@ -146,8 +147,6 @@ if __name__ == "__main__":
     hls_url1 = get_stream_url(BROADCAST_ID_ONE) # Me
     hls_url2 = get_stream_url(BROADCAST_ID_ONE) # Adam
     # send_stream(hls_url1, hls_url2)
-    frame = np.rot90(read_stream(hls_url1, ""))
-    frame2 = no.rot90(read_stream(hls_url2, ""))
 
     # cap = cv2.VideoCapture("../../local/hackmit3.mp4")
     # cap2 = cv2.VideoCapture("../../local/test3.mp4")
@@ -155,26 +154,35 @@ if __name__ == "__main__":
     # ret, frame = cap.read()
     # ret2, frame2 = cap2.read()
 
-    common_shape = find_common_shape(frame, frame2)
+    while True:
+        #frame = np.rot90(read_stream(hls_url1, ""), 3)
+        #frame2 = np.rot90(read_stream(hls_url2, ""), 3)
 
-    frame = frame[0:common_shape[0], 0:common_shape[1]]
-    frame2 = frame2[0:common_shape[0], 0:common_shape[1]] 
+        frame = read_stream(hls_url1, "")
+        frame2 = read_stream(hls_url1, "")
 
-    r = SCALE / frame.shape[1]
-    dim = (int(SCALE), int(frame.shape[0] * r))
+        common_shape = find_common_shape(frame, frame2)
 
-    r2 = SCALE / frame2.shape[1]
-    dim2 = (int(SCALE), int(frame2.shape[0] * r2))
-     
-    # perform the actual resizing of the frame and show it
-    frame = cv2.resize(frame, dim, interpolation = cv2.INTER_AREA)
-    frame2 = cv2.resize(frame2, dim2, interpolation = cv2.INTER_AREA)
+        frame = frame[0:common_shape[0], 0:common_shape[1]]
+        frame2 = frame2[0:common_shape[0], 0:common_shape[1]] 
 
-    stich = np.concatenate((frame, frame2), axis=1)
+        r = SCALE / frame.shape[1]
+        dim = (int(SCALE), int(frame.shape[0] * r))
 
-    cv2.imshow('frame',stich)
+        r2 = SCALE / frame2.shape[1]
+        dim2 = (int(SCALE), int(frame2.shape[0] * r2))
+         
+        # perform the actual resizing of the frame and show it
+        frame = cv2.resize(frame, dim, interpolation = cv2.INTER_AREA)
+        frame2 = cv2.resize(frame2, dim2, interpolation = cv2.INTER_AREA)
 
-    raw_input()
+        stich = np.concatenate((frame, frame2), axis=1)
+
+        cv2.imshow('frame',stich)
+
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
+
     cv2.destroyAllWindows()
 
     # aligned = False  
