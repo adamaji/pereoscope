@@ -9,8 +9,8 @@ import codecs
 import subprocess
 
 
-BROADCAST_ID_ONE = "1mrxmWYOpoWGy"
-BROADCAST_ID_TWO = "1RDGlLqDEMNGL"
+BROADCAST_ID_ONE = "1YpKkeVoBzVJj"
+BROADCAST_ID_TWO = "1mrxmWYWpdNGy"
 SCALE = 400.0
 
 WIDTH = 600 # Width of a frame
@@ -100,7 +100,7 @@ def read_stream(url1, url2):
         # transform the byte read into a numpy array
         image =  np.fromstring(raw_image, dtype='uint8')
         image = image.reshape((HEIGHT,WIDTH,3))
-        image = np.rot90(image,3)
+        #image = np.rot90(image,3)
 
         raw_image2 = pipe2.stdout.read(WIDTH*HEIGHT*3)
         # print(raw_image)
@@ -108,7 +108,7 @@ def read_stream(url1, url2):
         # transform the byte read into a numpy array
         image2 =  np.fromstring(raw_image2, dtype='uint8')
         image2 = image2.reshape((HEIGHT,WIDTH,3))
-        image2 = np.rot90(image2,3)
+        #image2 = np.rot90(image2,3)
 
         # TODO: get the other image from the other stream...
         # Use image for both for the moment.
