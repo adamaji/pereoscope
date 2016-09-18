@@ -16,8 +16,8 @@ from time import sleep
 
 import utils
 
-BROADCAST_ID_LEFT = "1rmxPRQwvBdGN" 
-BROADCAST_ID_RIGHT = "" 
+BROADCAST_ID_LEFT = "1zqKVVOoEXwKB" 
+BROADCAST_ID_RIGHT = "1ZkKzWkoErwGv" 
 
 SCALE = 500.0
 
@@ -32,6 +32,8 @@ def main_loop(l_queue, r_queue):
     thread1 = Thread(target = read_pl, args = (l_queue, hls_pl_url_l))
     thread1.start()
 
+    # thread1.join()
+
     thread2 = Thread(target = read_pl, args = (r_queue, hls_pl_url_r))
     thread2.start()
 
@@ -41,7 +43,11 @@ def display_loop(l_queue, r_queue):
     frame_r, t_r = r_queue.get()
 
     while True:
-        print("OUTPUT\n\n")
+        # print("OUTPUT\n\n")
+        print(r_queue.qsize())
+
+
+        print(t_r, t_l)
 
         if t_r < t_l:
             output_frames(frame_l, frame_r)
@@ -54,22 +60,36 @@ def display_loop(l_queue, r_queue):
 
     cv2.destroyAllWindows()
 
-
 def read_pl(q, pl_uri):
+
+    last_frame = 0
 
     while True:
 
         m3obj = m3u8.load(pl_uri)
 
-        # devnull = open(os.devnull, 'wb') #python >= 2.4
+        devnull = open(os.devnull, 'wb') #python >= 2.4
 
         for segment in m3obj.segments:
+
+            # print(segment.uri)
+
+            # chunk_1474163371949391788_1430.ts\n <- segment.uri
+            frame_number = int(segment.uri.split(".")[0].split("_")[-1])
+
+            if frame_number > last_frame:
+                last_frame = frame_number
+                print(frame_number)
+            else:
+                break
+
+            fullpath = segment.base_uri + segment.uri
 
             #open the segment for reading.
             command = [
                 'ffmpeg',
                 '-i',
-                segment.base_uri + segment.uri,
+                fullpath,
                 '-f', 'image2pipe',
                 '-vf',
                 'scale={width}:{height}'.format(width=WIDTH, height=HEIGHT),
@@ -79,7 +99,7 @@ def read_pl(q, pl_uri):
                 'rawvideo',
                 '-']
 
-            pipe = subprocess.Popen(command, stdout=subprocess.PIPE,bufsize=10**8)
+            pipe = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=devnull, bufsize=10**8)
 
             while True:
 
@@ -98,7 +118,7 @@ def read_pl(q, pl_uri):
                 # Use image for both for the moment.
                 timestamp = segment.uri[6:19]
                 q.put((image, int(timestamp)))
-                print("Image read")
+                # print("Image read")
 
                 if cv2.waitKey(1) & 0xFF == ord('q'):
                     break
@@ -133,7 +153,7 @@ def output_frames(frame, frame2):
 
     cv2.imshow('frame',stich)
 
-    print("RAN\n")
+    # print("RAN\n")
 
 def find_common_shape(frame1, frame2):
     # rows, cols, channels
