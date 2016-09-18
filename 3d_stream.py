@@ -69,12 +69,12 @@ def insert_stream(service, title):
 	).execute()
 
 	snippet = response["snippet"]
-
+	print "NAME: " + response['cdn']['ingestionInfo']['streamName']
 	print "URL: " + response["cdn"]["ingestionInfo"]["ingestionAddress"]
 
 	url_to_send = response["cdn"]["ingestionInfo"]["ingestionAddress"]
 
-	return url_to_send, response["id"]
+	return url_to_send, response['cdn']['ingestionInfo']['streamName']
 
 def create_broadcast(service, args, title):
 
@@ -115,19 +115,31 @@ def send_stream(url):
 
     args = [
         'ffmpeg',
+        '-re',
         '-i',
-        'video="test.mp4"',
+        'test.mp4',
         '-vcodec',
         'libx264',
+        '-preset',
+        'veryfast',
+        '-maxrate',
+        '3000k',
+        '-bufsize',
+        '6000k',
+        '-pix_fmt',
+        'yuv420p',
+        '-g',
+        '50',
         '-tune',
         'zerolatency',
-        '-b',
+        '-b:v',
         '900k',
         '-f',
         'flv',
         url
         ]
 
+    print "CALLED"
     subprocess.call(args)
 
 if __name__ == "__main__":
@@ -137,7 +149,7 @@ if __name__ == "__main__":
   	argparser.add_argument("--privacy-status", help="Broadcast privacy status",
     	default="public")
   	argparser.add_argument("--start-time", help="Scheduled start time",
-    	default='2016-09-18T12:00:00.0Z')
+    	default='2016-09-18T08:00:00.0Z')
   	argparser.add_argument("--end-time", help="Scheduled end time",
     	default='2017-01-31T00:00:00.000Z')
   	argparser.add_argument("--stream-title", help="Stream title",
@@ -151,12 +163,12 @@ if __name__ == "__main__":
 	print type(datetime.now())
 	url = None
 	try:
-		broadcast_id = create_broadcast(service, args, "Stream")
+		#broadcast_id = create_broadcast(service, args, "Stream")
 		print "WORKS"
-		url, stream_id = insert_stream(service, "Stream")
+		url, stream_name = insert_stream(service, "Stream3")
 
-		bind_broadcast(service, broadcast_id, stream_id)
-		send_stream(url)
+		#bind_broadcast(service, broadcast_id, stream_id)
+		send_stream(url+"/surf-z5b1-4utp-e6cw")
 
 	except HttpError, e:
 		print e.content
