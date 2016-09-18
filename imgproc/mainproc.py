@@ -13,6 +13,9 @@ BROADCAST_ID_ONE = "1DXxyLaBBpWJM"
 BROADCAST_ID_TWO = ""
 SCALE = 500.0
 
+WIDTH = 640 # Width of a frame
+HEIGHT = 480 # Height of a frame
+
 # FFMPEG Handlers
 
 #
@@ -65,7 +68,7 @@ def read_stream(url1, url2):
         url1,
         '-f', 'image2pipe',
         '-vf',
-        'scale=640:480',
+        'scale={width}:{height}'.format(width=WIDTH, height=HEIGHT),
         '-pix_fmt',
         'rgb24',
         '-vcodec',
@@ -78,7 +81,7 @@ def read_stream(url1, url2):
         url2,
         '-f', 'image2pipe',
         '-vf',
-        'scale=640:480',
+        'scale={width}:{height}'.format(width=WIDTH, height=HEIGHT),
         '-pix_fmt',
         'rgb24',
         '-vcodec',
@@ -88,14 +91,51 @@ def read_stream(url1, url2):
     pipe1 = subprocess.Popen(command1, stdout=subprocess.PIPE, bufsize=10**8)
     # pipe2 = subprocess.Popen(command2, stdout = subprocess.PIPE, bufsize=10**8)
 
-    raw_image = pipe1.stdout.read(640*480*3)
-    #print(raw_image)
-    # transform the byte read into a numpy array
-    image =  np.fromstring(raw_image, dtype='uint8')
-    image = np.reshape(image, (640,480,3))
+    while True:
+
+
+        raw_image = pipe1.stdout.read(WIDTH*HEIGHT*3)
+        # print(raw_image)
+        # transform the byte read into a numpy array
+        image =  np.fromstring(raw_image, dtype='uint8')
+        image = image.reshape((WIDTH,HEIGHT,3))
+
+        # TODO: get the other image from the other stream...
+        # Use image for both for the moment.
+        output_frames(image, image)
+
+        if cv2.waitKey(20) & 0xFF == ord('q'):
+            break
+
     # throw away the data in the pipe's buffer.
+    # cv2.imshow('original',image)asdf
     pipe1.stdout.flush()
+    pipe1.kill()
+
     return image
+
+def output_frames(frame, frame2):
+    #frame = np.rot90(read_stream(hls_url1, ""), 3)
+    #frame2 = np.rot90(read_stream(hls_url2, ""), 3)
+
+    common_shape = find_common_shape(frame, frame2)
+
+    frame = frame[0:common_shape[0], 0:common_shape[1]]
+    frame2 = frame2[0:common_shape[0], 0:common_shape[1]] 
+
+    r = SCALE / frame.shape[1]
+    dim = (int(SCALE), int(frame.shape[0] * r))
+
+    r2 = SCALE / frame2.shape[1]
+    dim2 = (int(SCALE), int(frame2.shape[0] * r2))
+     
+    # perform the actual resizing of the frame and show it
+    frame = cv2.resize(frame, dim, interpolation = cv2.INTER_AREA)
+    frame2 = cv2.resize(frame2, dim2, interpolation = cv2.INTER_AREA)
+
+    stich = np.concatenate((frame, frame2), axis=1)
+
+    cv2.imshow('frame',stich)
 
 ###----------------------------------####
 
@@ -147,41 +187,17 @@ if __name__ == "__main__":
     hls_url1 = get_stream_url(BROADCAST_ID_ONE) # Me
     hls_url2 = get_stream_url(BROADCAST_ID_ONE) # Adam
     # send_stream(hls_url1, hls_url2)
+    # frame = np.rot90(read_stream(hls_url1, ""))
+    # frame2 = np.rot90(read_stream(hls_url2, ""))
 
+    read_stream(hls_url1, hls_url2)
     # cap = cv2.VideoCapture("../../local/hackmit3.mp4")
     # cap2 = cv2.VideoCapture("../../local/test3.mp4")
 
     # ret, frame = cap.read()
     # ret2, frame2 = cap2.read()
 
-    while True:
-        #frame = np.rot90(read_stream(hls_url1, ""), 3)
-        #frame2 = np.rot90(read_stream(hls_url2, ""), 3)
 
-        frame = read_stream(hls_url1, "")
-        frame2 = read_stream(hls_url1, "")
-
-        common_shape = find_common_shape(frame, frame2)
-
-        frame = frame[0:common_shape[0], 0:common_shape[1]]
-        frame2 = frame2[0:common_shape[0], 0:common_shape[1]] 
-
-        r = SCALE / frame.shape[1]
-        dim = (int(SCALE), int(frame.shape[0] * r))
-
-        r2 = SCALE / frame2.shape[1]
-        dim2 = (int(SCALE), int(frame2.shape[0] * r2))
-         
-        # perform the actual resizing of the frame and show it
-        frame = cv2.resize(frame, dim, interpolation = cv2.INTER_AREA)
-        frame2 = cv2.resize(frame2, dim2, interpolation = cv2.INTER_AREA)
-
-        stich = np.concatenate((frame, frame2), axis=1)
-
-        cv2.imshow('frame',stich)
-
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            break
 
     cv2.destroyAllWindows()
 
